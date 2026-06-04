@@ -1,6 +1,6 @@
 package com.nllab.soletrack.controller;
 
-import com.nllab.soletrack.model.BalanceResponse;
+import com.nllab.soletrack.model.dto.BalanceResponse;
 import com.nllab.soletrack.service.BankingService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,19 +14,14 @@ import java.util.Map;
 @RestController
 public class EnableBankingController {
 
-    private final BankingService service;
-
     @Autowired
     private BankingService bankingService;
 
-    public EnableBankingController(BankingService service) {
-        this.service = service;
-    }
-
     @GetMapping("/accounts/{id}/balance")
-    public ResponseEntity<BalanceResponse> getBalance(@PathVariable("id") String id) {
-        BalanceResponse resp = service.getAccountBalance(id);
-        return ResponseEntity.ok(resp);
+    public Mono<ResponseEntity<BalanceResponse>> getBalance(@PathVariable("id") String id) {
+        return bankingService.getBalances(id)
+                .map(resp -> ResponseEntity.ok(resp))
+                .onErrorReturn(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/login_to_bank")
@@ -46,7 +41,6 @@ public class EnableBankingController {
     public Mono<?> handleBankCallback(
             @RequestParam("code") String code,
             @RequestParam(value = "state", required = false) String state) {
-
         try {
             return bankingService.createSession(code) // 1:get Session
                     .flatMap(sessionResponse -> {
@@ -55,16 +49,27 @@ public class EnableBankingController {
                             List<Map<String, Object>> accounts = (List<Map<String, Object>>) sessionResponse.get("accounts");
 
                             if (accounts == null || accounts.isEmpty()) {
-                                return Mono.just(Map.of("error", "No account exist."));
+                                return Mono.just(Map.of("status", "EMPTY", "message", "No account exist."));
                             }
 
-                            // get unit id (uid)
-                            String accountUid = (String) accounts.get(0).get("uid");
-                            System.out.println("Account info UID: " + accountUid);
+                            List<Map<String, String>> shortAccountList = accounts.stream()
+                                    .map(accountMap -> {
+                                        String accountUid = (String) accountMap.get("uid");
+                                        String accountName = (String) accountMap.get("name");
 
-                            // 3:API query UID account balance
-                            return bankingService.getBalances(accountUid);
+                                        // 封裝成只包含 uid 與 name 的乾淨小 Map
+                                        return Map.of(
+                                                "accountUid", accountUid != null ? accountUid : "Unknown UID",
+                                                "accountName", accountName != null ? accountName : "Unnamed Account"
+                                        );
+                                    })
+                                    .collect(java.util.stream.Collectors.toList());
 
+                            return Mono.just(Map.of(
+                                    "status", "SUCCESS",
+                                    "totalAccountsFound", shortAccountList.size(),
+                                    "accounts", shortAccountList // 👈 這就是你想要的純 UID + Name 清單！
+                            ));
                         } catch (Exception e) {
                             return Mono.error(e);
                         }
@@ -91,42 +96,4 @@ public class EnableBankingController {
                         .body(Map.of("error", "Get Auth URL failed.")));
     }
 
-    @PostMapping("/verify-callback")
-    public Mono<?> verifyBankCallback(@RequestBody BankCallbackRequest requestBody) {
-
-        String code = requestBody.getCode();
-        String state = requestBody.getState();
-
-        System.out.println("Code from front end: " + code);
-
-        try {
-            return bankingService.createSession(code)
-                    .flatMap(sessionResponse -> {
-                        try {
-                            List<Map<String, Object>> accounts = (List<Map<String, Object>>) sessionResponse.get("accounts");
-                            if (accounts == null || accounts.isEmpty()) {
-                                return Mono.just(Map.of("status", "FAILED", "message", "沒有找到任何授權帳戶"));
-                            }
-
-                            String accountUid = (String) accounts.get(0).get("uid");
-
-                            return bankingService.getBalances(accountUid)
-                                    .map(balanceResponse -> Map.of(
-                                            "status", "SUCCESS",
-                                            "accountId", accountUid,
-                                            "balance", balanceResponse // 這會包含真實的金額與貨幣 JSON
-                                    ));
-                        } catch (Exception e) {
-                            return Mono.error(e);
-                        }
-                    })
-                    .onErrorResume(error -> Mono.just(Map.of(
-                            "status", "FAILED",
-                            "message", "處理銀行數據時發生錯誤: " + error.getMessage()
-                    )));
-
-        } catch (Exception e) {
-            return Mono.just(Map.of("status", "FAILED", "message", e.getMessage()));
-        }
-    }
 } 

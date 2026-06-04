@@ -1,13 +1,11 @@
 package com.nllab.soletrack.service;
 
-import com.nllab.soletrack.model.BalanceResponse;
+import com.nllab.soletrack.model.dto.BalanceResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 @Component("plaid")
@@ -20,24 +18,6 @@ public class PlaidProviderImpl implements OpenBankingProvider {
 
     @Value("${plaid.access-token:}")
     private String accessToken;
-
-    @Override
-    public BalanceResponse getAccountBalance(String accountId) {
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            return new BalanceResponse(accountId, new BigDecimal("500.00"), "USD");
-        }
-
-        String url = baseUrl + "/accounts/{id}/balance";
-        try {
-            BalanceResponse resp = restTemplate.getForObject(url, BalanceResponse.class, accountId);
-            if (resp == null) {
-                return new BalanceResponse(accountId, BigDecimal.ZERO, "USD");
-            }
-            return resp;
-        } catch (RestClientException e) {
-            throw new RuntimeException("Plaid provider request failed", e);
-        }
-    }
 
     @Override
     public String getProviderName() {
@@ -55,7 +35,7 @@ public class PlaidProviderImpl implements OpenBankingProvider {
     }
 
     @Override
-    public Mono<Map<String, Object>> getBalances(String accountId) {
+    public Mono<BalanceResponse> getBalances(String accountId) {
         return null;
     }
 

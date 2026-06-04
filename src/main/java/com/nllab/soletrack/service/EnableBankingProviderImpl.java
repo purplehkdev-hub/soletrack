@@ -1,8 +1,9 @@
 package com.nllab.soletrack.service;
 
-import com.nllab.soletrack.model.BalanceResponse;
+import com.nllab.soletrack.model.dto.BalanceResponse;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -10,15 +11,10 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ResourceUtils;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.io.File;
-import java.math.BigDecimal;
-import java.nio.file.Files;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -26,8 +22,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static java.time.temporal.ChronoUnit.DAYS;
-
+@Slf4j
 @Component("enableBanking")
 public class EnableBankingProviderImpl implements OpenBankingProvider {
 
@@ -138,23 +133,7 @@ public class EnableBankingProviderImpl implements OpenBankingProvider {
         }
     }
 
-    @Override
-    public BalanceResponse getAccountBalance(String accountId) {
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            return new BalanceResponse(accountId, new BigDecimal("1000.00"), "USD");
-        }
 
-        String url = baseUrl + "/accounts/{id}/balance";
-        try {
-            BalanceResponse resp = restTemplate.getForObject(url, BalanceResponse.class, accountId);
-            if (resp == null) {
-                return new BalanceResponse(accountId, BigDecimal.ZERO, "USD");
-            }
-            return resp;
-        } catch (RestClientException e) {
-            throw new RuntimeException("EnableBanking provider request failed", e);
-        }
-    }
 
     @Override
     public String getProviderName() {
@@ -177,7 +156,7 @@ public class EnableBankingProviderImpl implements OpenBankingProvider {
     }
 
     @Override
-    public Mono<Map<String, Object>> getBalances(String accountId) {
+    public Mono<BalanceResponse> getBalances(String accountId) {
         String jwtToken = generateClientToken();
 
         //path /accounts/{account_id}/balances
@@ -185,6 +164,14 @@ public class EnableBankingProviderImpl implements OpenBankingProvider {
                 .uri(baseUrl + "/accounts/" + accountId + "/balances")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtToken)
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {});
+                //.bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {});
+                .bodyToMono(BalanceResponse.class)
+                .doOnNext(response -> {
+                    log.info(response.toString());
+                })
+                .doOnError(error -> {
+                    log.info(error.toString());
+                });
     }
+
 }

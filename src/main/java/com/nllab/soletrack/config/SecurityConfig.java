@@ -15,7 +15,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login_to_bank","/getAuthUrl", "/callback", "/test-auth").permitAll()
+                        .requestMatchers("/login_to_bank","/getAuthUrl", "/callback", "/test-auth","/accounts/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())
