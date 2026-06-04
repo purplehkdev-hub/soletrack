@@ -7,17 +7,28 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 import java.util.Map;
 
 @RestController
+@Tag(name = "Banking", description = "Endpoints to authenticate with banks and fetch account information")
 public class EnableBankingController {
 
     @Autowired
     private BankingService bankingService;
 
     @GetMapping("/accounts/{id}/balance")
+    @Operation(summary = "Get account balance", description = "Retrieve the balances for the provided account id. Returns 200 with BalanceResponse JSON when found; 404 if not available.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Balance found", content = @Content(schema = @Schema(implementation = BalanceResponse.class))),
+                    @ApiResponse(responseCode = "404", description = "Not found")
+            })
     public Mono<ResponseEntity<BalanceResponse>> getBalance(@PathVariable("id") String id) {
         return bankingService.getBalances(id)
                 .map(resp -> ResponseEntity.ok(resp))
@@ -25,6 +36,7 @@ public class EnableBankingController {
     }
 
     @GetMapping("/login_to_bank")
+    @Operation(summary = "Redirect to bank login", description = "Fetches provider auth URL and redirects the browser to bank's login page. Throws runtime error on failure.")
     public void redirectToBankLogin(HttpServletResponse response) {
         try {
             String officialAuthUrl = bankingService.getAuthUrl().block();
@@ -38,6 +50,7 @@ public class EnableBankingController {
     }
 
     @GetMapping("/callback")
+    @Operation(summary = "Handle bank callback", description = "Exchanges the provided authorization code for a session and returns a simplified list of accounts (uid and name). Responses: SUCCESS, EMPTY, or ERROR.")
     public Mono<?> handleBankCallback(
             @RequestParam("code") String code,
             @RequestParam(value = "state", required = false) String state) {
@@ -86,6 +99,7 @@ public class EnableBankingController {
 
 
     @GetMapping("/getAuthUrl")
+    @Operation(summary = "Get auth URL", description = "Returns JSON containing the provider auth URL that client applications can use to redirect users.")
     public Mono<ResponseEntity<Map<String, String>>> getAuthUrl() {
         return bankingService.getAuthUrl()
                 .map(url -> {
@@ -96,4 +110,4 @@ public class EnableBankingController {
                         .body(Map.of("error", "Get Auth URL failed.")));
     }
 
-} 
+}

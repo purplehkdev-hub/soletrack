@@ -15,7 +15,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login_to_bank","/getAuthUrl", "/callback", "/test-auth","/accounts/**").permitAll()
+                        .requestMatchers("/login_to_bank","/getAuthUrl", "/callback", "/test-auth","/accounts/**" , "/swagger-ui/**" , "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())
