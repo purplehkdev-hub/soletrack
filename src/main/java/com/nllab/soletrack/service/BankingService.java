@@ -1,6 +1,7 @@
 package com.nllab.soletrack.service;
 
 import com.nllab.soletrack.model.dto.BalanceResponse;
+import com.nllab.soletrack.model.dto.BankSessionResponse;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -21,7 +22,7 @@ public class BankingService {
         return provider.getAuthUrl();
     }
 
-    public Mono<Map<String, Object>> createSession(String code) {
+    public Mono<BankSessionResponse> createSession(String code) {
         OpenBankingProvider provider = providerFactory.getProvider();
         return provider.createSession(code);
     }

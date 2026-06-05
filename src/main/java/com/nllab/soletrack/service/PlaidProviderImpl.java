@@ -1,6 +1,7 @@
 package com.nllab.soletrack.service;
 
 import com.nllab.soletrack.model.dto.BalanceResponse;
+import com.nllab.soletrack.model.dto.BankSessionResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -30,7 +31,7 @@ public class PlaidProviderImpl implements OpenBankingProvider {
     }
 
     @Override
-    public Mono<Map<String, Object>> createSession(String code) {
+    public Mono<BankSessionResponse> createSession(String code) {
         return null;
     }
 

@@ -1,6 +1,7 @@
 package com.nllab.soletrack.service;
 
 import com.nllab.soletrack.model.dto.BalanceResponse;
+import com.nllab.soletrack.model.dto.BankSessionResponse;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -14,7 +15,7 @@ public interface OpenBankingProvider {
 
     Mono<String> getAuthUrl();
 
-    Mono<Map<String, Object>> createSession(String code);
+    Mono<BankSessionResponse> createSession(String code);
 
     Mono<BalanceResponse> getBalances(String accountId);
 

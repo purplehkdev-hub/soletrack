@@ -1,17 +1,16 @@
 package com.nllab.soletrack.service;
 
 import com.nllab.soletrack.model.dto.BalanceResponse;
+import com.nllab.soletrack.model.dto.BankSessionResponse;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -22,17 +21,16 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+@RequiredArgsConstructor
 @Slf4j
 @Component("enableBanking")
 public class EnableBankingProviderImpl implements OpenBankingProvider {
 
-    private final RestTemplate restTemplate = new RestTemplate();
     private final WebClient webClient = WebClient.builder().build();
 
-    @Autowired
-    private ResourceLoader resourceLoader;
+    private final ResourceLoader resourceLoader;
 
-    @Value("${enablebanking.base-url:}")
+    @Value("${enable-banking.base-url}")
     private String baseUrl;
 
     @Value("${enable-banking.app-id}")
@@ -53,14 +51,6 @@ public class EnableBankingProviderImpl implements OpenBankingProvider {
 
     private String generateClientToken() {
         try {
-            //File file = ResourceUtils.getFile(keyPath);
-            //String privateKeyPem = Files.readString(file.toPath());
-            //privateKeyPem = privateKeyPem.replace("-----BEGIN RSA PRIVATE KEY-----", "")
-            //        .replace("-----END RSA PRIVATE KEY-----", "")
-            //        .replaceAll("\\s", "");
-//
-            //byte[] keyBytes = Base64.getDecoder().decode(privateKeyPem);
-
             org.springframework.core.io.Resource resource = resourceLoader.getResource(keyPath);
 
             String privateKeyPem;
@@ -90,7 +80,7 @@ public class EnableBankingProviderImpl implements OpenBankingProvider {
                     .signWith(privateKey, SignatureAlgorithm.RS256)
                     .compact();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to generate Client Token", e);
             throw new RuntimeException("generateSandboxJwt fail.", e);
         }
     }
@@ -113,7 +103,7 @@ public class EnableBankingProviderImpl implements OpenBankingProvider {
                     "redirect_url", redirectUrl,
                     "state", UUID.randomUUID().toString()
             );
-
+            log.info("baseUrl" + baseUrl);
             return webClient.post()
                     .uri(baseUrl + "/auth")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtToken)
@@ -141,7 +131,7 @@ public class EnableBankingProviderImpl implements OpenBankingProvider {
     }
 
     @Override
-    public Mono<Map<String, Object>> createSession(String code) {
+    public Mono<BankSessionResponse> createSession(String code) {
         String jwtToken = generateClientToken(); // each request need gen JWT
 
         Map<String, String> requestBody = Map.of("code", code);
@@ -152,7 +142,7 @@ public class EnableBankingProviderImpl implements OpenBankingProvider {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {});
+                .bodyToMono(BankSessionResponse.class);
     }
 
     @Override

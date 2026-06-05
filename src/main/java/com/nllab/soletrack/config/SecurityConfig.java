@@ -1,22 +1,23 @@
 package com.nllab.soletrack.config;
 
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @Configuration
-@EnableWebSecurity
+@EnableWebFluxSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityWebFilterChain SecurityWebFilterChain(ServerHttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login_to_bank","/getAuthUrl", "/callback", "/test-auth","/accounts/**" , "/swagger-ui/**" , "/v3/api-docs/**").permitAll()
-                        .anyRequest().authenticated()
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/login_to_bank","/getAuthUrl","/callback","/test-auth","/accounts/**",
+                                "/swagger-ui/**" , "/v3/api-docs/**", "swagger-ui.html"
+                        ).permitAll()
+                        .anyExchange().authenticated()
                 )
                 .formLogin(form -> form.disable())
                 .csrf(csrf -> csrf.disable());
