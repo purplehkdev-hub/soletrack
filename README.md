@@ -30,9 +30,12 @@ GET /callback?code=...: exchanges code for a session and returns a simplified ac
 - GET /accounts/{id}/balance: returns account balances for the given account id.
 
 ## Development
-- Code style: follow https://google.github.io/styleguide/javaguide.html
+- Cursor review doc & Code style: follow https://google.github.io/styleguide/javaguide.html
+- Cursor rules: follow https://cursor.directory/plugins/java
+- Dockerfile: follow https://projects-uploaded-files.s3.us-east-2.amazonaws.com/production/item_response_files/_2f92ce3c-c44b-4270-a5f4-04785bb3b705_eff896c4-48b4-4b3a-99ff-7f54c577a714.html
 
-## Todo
-- Create Docker file
-- application.properties should be application-[profile].properties
-- add transactions end point
+## Roadmap & Upcoming Features
+- Containerization: Adding Docker & Docker Compose setup for instant deployment.
+- Multi-Environment Configuration: Refactoring into application-[profile].properties for Dev/Prod isolation.
+- Transaction Tracking: Implementation of GET /accounts/{id}/transactions endpoint.
+- Global Integration: Extending support for Plaid API to cover US bank accounts.
